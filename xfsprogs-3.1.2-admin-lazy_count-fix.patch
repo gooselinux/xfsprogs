@@ -1,0 +1,37 @@
+commit 63b84a85b8d798e4c55d3516497a201184175bb0
+Author: Eric Sandeen <sandeen@sandeen.net>
+Date:   Wed Apr 28 22:15:26 2010 -0500
+
+    xfs_repair: write both features2 fields when xfs_admin changes lazy_count
+    
+    xfs_admin -c invokes repair directly to change lazy_count,
+    but it doesn't write both features2 fields, so this:
+    
+    # mkfs.xfs -dfile,name=fsfile,size=10g -llazy-count=0
+    # xfs_admin -c 1 fsfile
+    # xfs_repair fsfile
+    
+    yields errors.
+    
+    Reported-by: Marcin Mirosław <marcin@mejor.pl>
+    Signed-off-by: Eric Sandeen <sandeen@sandeen.net>
+    Reviewed-by: Dave Chinner <david@fromorbit.com>
+
+diff --git a/repair/phase1.c b/repair/phase1.c
+index 618796e..dbfbc9b 100644
+--- a/repair/phase1.c
++++ b/repair/phase1.c
+@@ -117,11 +117,13 @@ phase1(xfs_mount_t *mp)
+ 		if (lazy_count && !xfs_sb_version_haslazysbcount(sb)) {
+ 			sb->sb_versionnum |= XFS_SB_VERSION_MOREBITSBIT;
+ 			sb->sb_features2 |= XFS_SB_VERSION2_LAZYSBCOUNTBIT;
++			sb->sb_bad_features2 |= XFS_SB_VERSION2_LAZYSBCOUNTBIT;
+ 			primary_sb_modified = 1;
+ 			printf(_("Enabling lazy-counters\n"));
+ 		} else
+ 		if (!lazy_count && xfs_sb_version_haslazysbcount(sb)) {
+ 			sb->sb_features2 &= ~XFS_SB_VERSION2_LAZYSBCOUNTBIT;
++			sb->sb_bad_features2 &= ~XFS_SB_VERSION2_LAZYSBCOUNTBIT;
+ 			printf(_("Disabling lazy-counters\n"));
+ 			primary_sb_modified = 1;
+ 		} else {

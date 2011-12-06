@@ -1,0 +1,28 @@
+From: Christoph Hellwig <hch@lst.de>
+Date: Sun, 31 Jan 2010 08:57:46 +0000 (+0100)
+Subject: mkfs.xfs: fix fd validity check in get_topology
+X-Git-Url: http://git.kernel.org/?p=fs%2Fxfs%2Fxfsprogs-dev.git;a=commitdiff_plain;h=85112c3a23927f299f04c193f5924249d7dd80bf
+
+mkfs.xfs: fix fd validity check in get_topology
+
+Only negatie return values from open mean we failed to open the device.
+Without this check we do not print the usage message when no device is
+specified.  This leads to a weird failure in xfstests 122.
+
+Reviewed-by: Eric Sandeen <sandeen@sandeen.ent>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+
+Index: xfsprogs-dev/mkfs/xfs_mkfs.c
+===================================================================
+--- xfsprogs-dev.orig/mkfs/xfs_mkfs.c	2010-01-30 20:44:03.505255109 +0100
++++ xfsprogs-dev/mkfs/xfs_mkfs.c	2010-01-30 20:44:20.579255807 +0100
+@@ -455,7 +455,7 @@ static void get_topology(libxfs_init_t *
+ 				&ft->dsunit, &ft->dswidth, &ft->sectoralign);
+ 		fd = open(dfile, O_RDONLY);
+ 		/* If this fails we just fall back to BBSIZE */
+-		if (fd) {
++		if (fd >= 0) {
+ 			platform_findsizes(dfile, fd, &dummy, &bsz);
+ 			close(fd);
+ 		}
